@@ -1,0 +1,1 @@
+module.exports.WrongPasswordException = class WrongPasswordException extends Error {};

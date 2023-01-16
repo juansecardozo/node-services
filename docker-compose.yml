@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  mongodb:
+    image: mongo:latest
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=$MONGODB_USER
+      - MONGO_INITDB_ROOT_PASSWORD=$MONGODB_PASSWORD
+    ports:
+      - "${MONGODB_LOCAL_PORT}:27017"
+    volumes:
+      - db:/data/db
+  stock-service:
+    depends_on:
+      - mongodb
+    build:
+      context: ./stock-service
+    restart: unless-stopped
+    env_file: ./.env
+    ports:
+      - "${STOCK_LOCAL_PORT}:3002"
+    environment:
+      - DB_HOST=mongodb
+      - DB_USER=$MONGODB_USER
+      - DB_PASSWORD=$MONGODB_PASSWORD
+      - DB_NAME=$MONGODB_STOCK_DATABASE
+      - DB_PORT=27017
+    stdin_open: true
+    tty: true
+  api-service:
+    depends_on:
+      - mongodb
+      - stock-service
+    build:
+      context: ./api-service
+    restart: unless-stopped
+    env_file: ./.env
+    ports:
+      - "${API_LOCAL_PORT}:3002"
+    environment:
+      - DB_HOST=mongodb
+      - DB_USER=$MONGODB_USER
+      - DB_PASSWORD=$MONGODB_PASSWORD
+      - DB_NAME=$MONGODB_API_DATABASE
+      - DB_PORT=27017
+      - JWT_SECRET=secret
+      - STOCK_SERVICE_URL=http://stock-service:3002/stock
+      - HTTP_PORT=3002
+    stdin_open: true
+    tty: true
+
+volumes:
+  db:
